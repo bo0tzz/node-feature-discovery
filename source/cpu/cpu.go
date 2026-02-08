@@ -19,6 +19,7 @@ package cpu
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -42,6 +43,7 @@ const (
 	CpuidFeature       = "cpuid"
 	Cpumodel           = "model"
 	CstateFeature      = "cstate"
+	FrequencyFeature   = "frequency"
 	PstateFeature      = "pstate"
 	RdtFeature         = "rdt"
 	SecurityFeature    = "security"
@@ -161,6 +163,11 @@ func (s *cpuSource) GetLabels() (source.FeatureLabels, error) {
 		labels["model."+k] = v
 	}
 
+	// Frequency
+	for k, v := range features.Attributes[FrequencyFeature].Elements {
+		labels["frequency."+k] = v
+	}
+
 	// Cstate
 	for k, v := range features.Attributes[CstateFeature].Elements {
 		labels["cstate."+k] = v
@@ -233,6 +240,9 @@ func (s *cpuSource) Discover() error {
 	} else {
 		s.features.Attributes[CstateFeature] = nfdv1alpha1.NewAttributeFeatures(cstate)
 	}
+
+	// Detect CPU frequency
+	s.features.Attributes[FrequencyFeature] = nfdv1alpha1.NewAttributeFeatures(discoverFrequency())
 
 	// Detect pstate features
 	pstate, err := detectPstate()
@@ -379,6 +389,40 @@ func discoverTopology() map[string]string {
 
 	features["hardware_multithreading"] = strconv.FormatBool(ht)
 	features["socket_count"] = strconv.FormatInt(int64(uniquePhysicalIDs.Len()), 10)
+
+	return features
+}
+
+func discoverFrequency() map[string]string {
+	features := make(map[string]string)
+
+	cpufreqDir := hostpath.SysfsDir.Path("devices/system/cpu/cpufreq")
+	policies, err := os.ReadDir(cpufreqDir)
+	if err != nil {
+		klog.V(1).InfoS("failed to read cpufreq directory", "error", err)
+		return features
+	}
+
+	if len(policies) == 0 {
+		return features
+	}
+
+	// Read frequency attributes from the first available cpufreq policy
+	policyPath := filepath.Join(cpufreqDir, policies[0].Name())
+
+	for _, attr := range []string{"base_frequency", "cpuinfo_max_freq", "cpuinfo_min_freq"} {
+		data, err := os.ReadFile(filepath.Join(policyPath, attr))
+		if err != nil {
+			continue
+		}
+		khz, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
+		if err != nil {
+			klog.ErrorS(err, "failed to parse frequency value", "attribute", attr)
+			continue
+		}
+		// Convert kHz to MHz
+		features[attr] = strconv.FormatUint(khz/1000, 10)
+	}
 
 	return features
 }
