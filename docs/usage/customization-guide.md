@@ -924,10 +924,10 @@ The following features are available for matching:
 |                  |              | **AVX10_VERSION** | int | AVX10 vector ISA version (if supported) |
 | **`cpu.cstate`** | attribute    |          |            | Status of cstates in the intel_idle cpuidle driver |
 |                  |              | **`enabled`** | bool  | 'true' if cstates are set, otherwise 'false'. Does not exist of intel_idle driver is not active. |
-| **`cpu.frequency`** | attribute |          |            | CPU frequency information detected from sysfs cpufreq |
-|                  |              | **`base_frequency`** | int | Base CPU frequency in MHz. May not be available on all systems. |
-|                  |              | **`cpuinfo_max_freq`** | int | Maximum CPU frequency in MHz |
-|                  |              | **`cpuinfo_min_freq`** | int | Minimum CPU frequency in MHz |
+| **`cpu.frequency`** | attribute |          |            | CPU frequency information detected from sysfs cpufreq, with CPUID fallback on x86 |
+|                  |              | **`base_frequency`** | int | Base CPU frequency in MHz. From sysfs cpufreq or CPUID. |
+|                  |              | **`cpuinfo_max_freq`** | int | Maximum CPU frequency in MHz. From sysfs cpufreq or CPUID boost frequency. |
+|                  |              | **`cpuinfo_min_freq`** | int | Minimum CPU frequency in MHz. Only available via sysfs cpufreq. |
 | **`cpu.model`**  | attribute    |          |            | CPU model related attributes |
 |                  |              | **`family`** | int    | CPU family |
 |                  |              | **`vendor_id`** | string | CPU vendor ID |

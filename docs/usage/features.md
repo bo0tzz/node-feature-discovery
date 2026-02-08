@@ -62,9 +62,9 @@ feature.node.kubernetes.io/<feature> = <value>
 | **`cpu-security.sev.enabled`**      | true   | Set to 'true' if ADM SEV is available on the host and has been enabled (requires `/sys/module/kvm_amd/parameters/sev`). |
 | **`cpu-security.sev.es.enabled`**   | true   | Set to 'true' if ADM SEV-ES is available on the host and has been enabled (requires `/sys/module/kvm_amd/parameters/sev_es`). |
 | **`cpu-security.sev.snp.enabled`**  | true   | Set to 'true' if ADM SEV-SNP is available on the host and has been enabled (requires `/sys/module/kvm_amd/parameters/sev_snp`). |
-| **`cpu-frequency.base_frequency`**  | int    | Base CPU frequency in MHz. May not be available on all systems. |
-| **`cpu-frequency.cpuinfo_max_freq`** | int   | Maximum CPU frequency in MHz. |
-| **`cpu-frequency.cpuinfo_min_freq`** | int   | Minimum CPU frequency in MHz. |
+| **`cpu-frequency.base_frequency`**  | int    | Base CPU frequency in MHz. Read from sysfs cpufreq when available, otherwise from CPUID on x86. |
+| **`cpu-frequency.cpuinfo_max_freq`** | int   | Maximum CPU frequency in MHz. Read from sysfs cpufreq when available, otherwise from CPUID boost frequency on x86. |
+| **`cpu-frequency.cpuinfo_min_freq`** | int   | Minimum CPU frequency in MHz. Only available when sysfs cpufreq is present. |
 | **`cpu-model.vendor_id`**           | string | Comparable CPU vendor ID. |
 | **`cpu-model.family`**              | int    | CPU family. |
 | **`cpu-model.id`**                  | int    | CPU model number. |

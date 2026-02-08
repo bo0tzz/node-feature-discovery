@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/klauspost/cpuid/v2"
 	"github.com/stretchr/testify/assert"
 
 	"sigs.k8s.io/node-feature-discovery/pkg/utils/hostpath"
@@ -82,11 +83,36 @@ func TestDiscoverFrequency(t *testing.T) {
 		assert.Equal(t, "400", features["cpuinfo_min_freq"])
 	})
 
-	t.Run("no cpufreq directory", func(t *testing.T) {
+	t.Run("empty cpufreq falls back to cpuid", func(t *testing.T) {
+		dir := t.TempDir()
+		hostpath.SysfsDir = hostpath.HostDir(dir)
+
+		// Create empty cpufreq directory (mimics Talos Linux)
+		err := os.MkdirAll(filepath.Join(dir, "devices/system/cpu/cpufreq"), 0755)
+		assert.Nil(t, err)
+
+		features := discoverFrequency()
+
+		// On x86 test hosts, cpuid should provide frequency; on other
+		// architectures the map may be empty. Either way the function
+		// must not panic.
+		if cpuid.CPU.Hz > 0 {
+			assert.NotEmpty(t, features["base_frequency"])
+		}
+		if cpuid.CPU.BoostFreq > 0 {
+			assert.NotEmpty(t, features["cpuinfo_max_freq"])
+		}
+	})
+
+	t.Run("no cpufreq directory falls back to cpuid", func(t *testing.T) {
 		dir := t.TempDir()
 		hostpath.SysfsDir = hostpath.HostDir(dir)
 
 		features := discoverFrequency()
-		assert.Empty(t, features)
+
+		// Same as above: on x86 we expect cpuid fallback values
+		if cpuid.CPU.Hz > 0 {
+			assert.NotEmpty(t, features["base_frequency"])
+		}
 	})
 }
