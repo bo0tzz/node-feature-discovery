@@ -19,7 +19,6 @@ package cpu
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -396,36 +395,11 @@ func discoverTopology() map[string]string {
 func discoverFrequency() map[string]string {
 	features := make(map[string]string)
 
-	// Try sysfs cpufreq first (available when cpufreq driver is loaded)
-	cpufreqDir := hostpath.SysfsDir.Path("devices/system/cpu/cpufreq")
-	policies, err := os.ReadDir(cpufreqDir)
-	if err == nil && len(policies) > 0 {
-		// Read frequency attributes from the first available cpufreq policy
-		policyPath := filepath.Join(cpufreqDir, policies[0].Name())
-
-		for _, attr := range []string{"base_frequency", "cpuinfo_max_freq", "cpuinfo_min_freq"} {
-			data, err := os.ReadFile(filepath.Join(policyPath, attr))
-			if err != nil {
-				continue
-			}
-			khz, err := strconv.ParseUint(strings.TrimSpace(string(data)), 10, 64)
-			if err != nil {
-				klog.ErrorS(err, "failed to parse frequency value", "attribute", attr)
-				continue
-			}
-			// Convert kHz to MHz
-			features[attr] = strconv.FormatUint(khz/1000, 10)
-		}
+	if cpuid.CPU.Hz > 0 {
+		features["base_frequency"] = strconv.FormatInt(cpuid.CPU.Hz/1_000_000, 10)
 	}
-
-	// Fall back to CPUID if sysfs cpufreq is not available (e.g. Talos Linux)
-	if len(features) == 0 {
-		if cpuid.CPU.Hz > 0 {
-			features["base_frequency"] = strconv.FormatInt(cpuid.CPU.Hz/1_000_000, 10)
-		}
-		if cpuid.CPU.BoostFreq > 0 {
-			features["cpuinfo_max_freq"] = strconv.FormatInt(cpuid.CPU.BoostFreq/1_000_000, 10)
-		}
+	if cpuid.CPU.BoostFreq > 0 {
+		features["boost_frequency"] = strconv.FormatInt(cpuid.CPU.BoostFreq/1_000_000, 10)
 	}
 
 	return features
